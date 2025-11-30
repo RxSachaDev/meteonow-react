@@ -7,7 +7,7 @@ function App() {
       <div className="flex justify-center">
         <h1>Météo</h1>
       </div>
-      <section>
+      <section className="flex justify-center mt-15">
         <MeteoCard />
       </section>
     </>

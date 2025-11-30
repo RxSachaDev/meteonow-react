@@ -2,15 +2,19 @@
 
 @theme {
   --color-primary: #3b82f6;
-  --radius-default: 25px;
   --font-size-h1: 48px;
   --font-size-h2: 36px;
   --font-size-h3: 20px;
   --font-size-h4: 16px;
   --font-size-p: 12px;
+  --font-color: #2D2C2C;
 }
 
 @layer base {
+  body {
+    color: var(--font-color)
+  }
+
   h1 {
     font-size: var(--font-size-h1);
   }
