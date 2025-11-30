@@ -2,12 +2,12 @@
 
 const MeteoCard = () => {
     return (
-        <div className="relative w-80 rounded-3xl overflow-hidden">
+        <div className="relative w-80 rounded-3xl overflow-hidden shadow-lg">
             {/* Image de fond */}
             <div className="absolute inset-0 bg-[url('./assets/background/fond_neige.jpg')] bg-cover bg-center" />
             
             {/* Voile gris par-dessus */}
-            <div className="absolute inset-0 bg-gray-300/50" />
+            <div className="absolute inset-0 bg-gray-100/50" />
             
             {/* Contenu par-dessus le voile */}
             <div className="relative z-10 py-5 px-7">
