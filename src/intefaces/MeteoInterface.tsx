@@ -1,4 +1,4 @@
-interface MeteoInterface {
+export default interface MeteoInterface {
     city: string;
     temperature: number;
     description: string;

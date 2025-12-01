@@ -4,13 +4,30 @@ import MeteoNextDays from "./components/MeteoNextDays"
 
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { useState } from "react";
+import type MeteoInterface from "./intefaces/MeteoInterface";
+import weatherService from "./services/WeatherService";
 
 function App() {
 
   const [isFocused, setIsFocused] = useState(false);
+  const [meteoData, setMeteoData] = useState<MeteoInterface | null>(null);
+  const [city, setCity] = useState<string>("")
+  const handleButtonResearch = async () => {
+    if (!city.trim()) {
+      return;
+    }
 
-  const handleButtonResearch = () => {
-       
+    try {
+      const data = await weatherService.getWeather(city);
+      console.log(data)
+      if (data) {
+        setMeteoData(data);
+      } else {
+        setMeteoData(null);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   return (
@@ -23,6 +40,8 @@ function App() {
             <FaMagnifyingGlass className="cursor-pointer" onClick={handleButtonResearch}/>
             <input
                 type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
                 placeholder="City..."
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
@@ -31,7 +50,7 @@ function App() {
         </div>
       </section>
       <section className="flex gap-6 justify-center mt-15" >
-        <MeteoCard />
+        <MeteoCard meteo={meteoData}/>
         <MeteoNextDays />
       </section>
       <section className="flex justify-center">
