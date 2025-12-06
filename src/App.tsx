@@ -7,6 +7,7 @@ import { useState } from "react";
 import type MeteoInterface from "./interfaces/MeteoInterface";
 import weatherService from "./services/WeatherService";
 import type { FutureForecast } from "./interfaces/FutureWeatherInterface";
+import type { DailyForecast } from "./interfaces/DailyForecast";
 
 function App() {
 
@@ -14,6 +15,7 @@ function App() {
   const [meteoData, setMeteoData] = useState<MeteoInterface | null>(null);
   const [city, setCity] = useState<string>("")
   const [futureMeteo, setFutureMeteo] = useState<FutureForecast[] | null>(null)
+  const [dailyForecasts, setDailyForecast] = useState<DailyForecast[] | null>(null)
   const handleButtonResearch = async () => {
     if (!city.trim()) {
       return;
@@ -22,10 +24,13 @@ function App() {
     try {
       const data = await weatherService.getWeather(city);
       const data2 = await weatherService.getFutureWeather(city)
+      const data3 = await weatherService.getDailyForecastsWithMinMax(city)
+
       console.log(data)
-      if (data && data2) {
+      if (data && data2 && data3) {
         setMeteoData(data);
         setFutureMeteo(data2)
+        setDailyForecast(data3)
       } else {
         setMeteoData(null);
       }
@@ -55,7 +60,7 @@ function App() {
       </section>
       <section className="flex gap-6 justify-center mt-15" >
         <MeteoCard meteo={meteoData}/>
-        <MeteoNextDays />
+        <MeteoNextDays dailyMeteo={dailyForecasts}/>
       </section>
       <section className="flex justify-center">
         <MeteoNextHours futureMeteo={futureMeteo}/>        

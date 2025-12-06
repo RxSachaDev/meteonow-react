@@ -1,3 +1,4 @@
+import type { DailyForecast } from "../interfaces/DailyForecast";
 import type { 
   ForecastResponse, 
   ForecastItem, 
@@ -248,7 +249,52 @@ class WeatherService {
     const json = await this.getFutureWeatherJson(city);
     return json?.city || null;
   }
+
+  public async getDailyForecastsWithMinMax(city: string): Promise<DailyForecast[] | null> {
+    const forecasts = await this.getFutureWeather(city);
+    
+    if (!forecasts) return null;
+
+    // Grouper par jour
+    const dailyMap = new Map<string, FutureForecast[]>();
+    
+    forecasts.forEach(forecast => {
+      const dateKey = forecast.date.toLocaleDateString('fr-FR');
+      if (!dailyMap.has(dateKey)) {
+        dailyMap.set(dateKey, []);
+      }
+      dailyMap.get(dateKey)!.push(forecast);
+    });
+
+    // Calculer min/max pour chaque jour
+    const dailyForecasts: DailyForecast[] = [];
+    
+    dailyMap.forEach((dayForecasts, dateKey) => {
+      const temperatures = dayForecasts.map(f => f.temperature);
+      const tempMin = Math.min(...temperatures);
+      const tempMax = Math.max(...temperatures);
+      
+      // Trouver la description la plus fréquente
+      const descriptions = dayForecasts.map(f => f.description);
+      const descriptionCount = new Map<string, number>();
+      descriptions.forEach(desc => {
+        descriptionCount.set(desc, (descriptionCount.get(desc) || 0) + 1);
+      });
+      const mostFrequentDescription = Array.from(descriptionCount.entries())
+        .sort((a, b) => b[1] - a[1])[0][0];
+
+      dailyForecasts.push({
+        date: dayForecasts[0].date,
+        tempMin: Math.round(tempMin * 10) / 10,
+        tempMax: Math.round(tempMax * 10) / 10,
+        description: mostFrequentDescription
+      });
+    });
+
+    return dailyForecasts;
+  }
 }
+
 
 // Exporter une instance unique (Singleton)
 const weatherService = new WeatherService();
