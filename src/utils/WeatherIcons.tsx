@@ -67,6 +67,7 @@ export const weatherIconMap: Record<string, IconType> = {
   "légères averses de neige": WiSnow,
   "averses de neige": WiSnow,
   "fortes averses de neige": WiSnowflakeCold,
+  "légères chutes de neige": WiSnow,
 
   // Groupe 7xx: Atmosphère
   "brume": WiFog,

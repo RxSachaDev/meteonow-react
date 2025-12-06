@@ -46,6 +46,7 @@ export const weatherVideoMap: Record<string, string> = {
   "légères averses de neige": "/src/assets/background/neige.mp4",
   "averses de neige": "/src/assets/background/neige.mp4",
   "fortes averses de neige": "/src/assets/background/neige.mp4",
+  "légères chutes de neige": "/src/assets/background/neige.mp4",
 
   // Groupe 7xx: Atmosphère
   "brume": "/src/assets/videos/mist.mp4",
