@@ -4,14 +4,16 @@ import MeteoNextDays from "./components/MeteoNextDays"
 
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { useState } from "react";
-import type MeteoInterface from "./intefaces/MeteoInterface";
+import type MeteoInterface from "./interfaces/MeteoInterface";
 import weatherService from "./services/WeatherService";
+import type { FutureForecast } from "./interfaces/FutureWeatherInterface";
 
 function App() {
 
   const [isFocused, setIsFocused] = useState(false);
   const [meteoData, setMeteoData] = useState<MeteoInterface | null>(null);
   const [city, setCity] = useState<string>("")
+  const [futureMeteo, setFutureMeteo] = useState<FutureForecast[] | null>(null)
   const handleButtonResearch = async () => {
     if (!city.trim()) {
       return;
@@ -19,9 +21,11 @@ function App() {
 
     try {
       const data = await weatherService.getWeather(city);
+      const data2 = await weatherService.getFutureWeather(city)
       console.log(data)
-      if (data) {
+      if (data && data2) {
         setMeteoData(data);
+        setFutureMeteo(data2)
       } else {
         setMeteoData(null);
       }
@@ -54,7 +58,7 @@ function App() {
         <MeteoNextDays />
       </section>
       <section className="flex justify-center">
-        <MeteoNextHours />        
+        <MeteoNextHours futureMeteo={futureMeteo}/>        
       </section>
     </>
   )

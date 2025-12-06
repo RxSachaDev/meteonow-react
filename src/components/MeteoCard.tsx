@@ -1,4 +1,4 @@
-import type MeteoInterface from "../intefaces/MeteoInterface"
+import type MeteoInterface from "../interfaces/MeteoInterface"
 
 const MeteoCard = ({ meteo }: { meteo: MeteoInterface | null}) => {
 

@@ -1,24 +1,24 @@
-import type MeteoInterface from "../intefaces/MeteoInterface";
+import type { 
+  ForecastResponse, 
+  ForecastItem, 
+  ForecastMain, 
+  ForecastWeather, 
+  CityInfo 
+} from "../interfaces/FutureWeatherInterface";
+import type MeteoInterface from "../interfaces/MeteoInterface";
+import type WeatherResponse from "../interfaces/WeatherResponseInterface";
 
-// Interface pour la réponse de l'API OpenWeatherMap
-interface OpenWeatherResponse {
-  main: {
-    temp: number;
-    humidity: number;
-  };
-  weather: Array<{
-    description: string;
-    icon: string;
-  }>;
-  wind: {
-    speed: number;
-  };
-  name: string;
+// Interface pour les prévisions futures formatées
+export interface FutureForecast {
+  date: Date;
+  temperature: number;
+  description: string;
 }
 
 // Classe pour gérer le cache
 class WeatherCache {
   private cache: Map<string, { data: MeteoInterface; timestamp: number }> = new Map();
+  private forecastCache: Map<string, { data: FutureForecast[]; timestamp: number }> = new Map();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   contains(city: string): boolean {
@@ -26,15 +26,33 @@ class WeatherCache {
     if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
       return true;
     }
-    // Supprimer du cache si expiré
     if (cached) {
       this.cache.delete(city.toLowerCase());
     }
     return false;
   }
 
+  containsForecast(city: string): boolean {
+    const cached = this.forecastCache.get(city.toLowerCase());
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      return true;
+    }
+    if (cached) {
+      this.forecastCache.delete(city.toLowerCase());
+    }
+    return false;
+  }
+
   get(city: string): MeteoInterface | null {
     const cached = this.cache.get(city.toLowerCase());
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      return cached.data;
+    }
+    return null;
+  }
+
+  getForecast(city: string): FutureForecast[] | null {
+    const cached = this.forecastCache.get(city.toLowerCase());
     if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
       return cached.data;
     }
@@ -48,8 +66,16 @@ class WeatherCache {
     });
   }
 
+  addForecast(city: string, data: FutureForecast[]): void {
+    this.forecastCache.set(city.toLowerCase(), {
+      data,
+      timestamp: Date.now()
+    });
+  }
+
   clear(): void {
     this.cache.clear();
+    this.forecastCache.clear();
   }
 }
 
@@ -57,11 +83,10 @@ class WeatherCache {
 class WeatherService {
   private cache: WeatherCache;
   private apiKey: string;
-  private readonly BASE_URL = 'https://api.openweathermap.org/data/2.5/weather';
+  private readonly BASE_URL = 'https://api.openweathermap.org/data/2.5/';
 
   constructor() {
     this.cache = new WeatherCache();
-    // Récupérer la clé API depuis les variables d'environnement
     this.apiKey = import.meta.env.VITE_API_KEY || '';
     
     if (!this.apiKey) {
@@ -77,10 +102,10 @@ class WeatherService {
       lang: 'fr' 
     });
     
-    return `${this.BASE_URL}?${params.toString()}`;
+    return `${this.BASE_URL}weather?${params.toString()}`;
   }
 
-  private async getWeatherJson(city: string): Promise<OpenWeatherResponse | null> {
+  private async getWeatherJson(city: string): Promise<WeatherResponse | null> {
     try {
       const url = this.getWeatherURI(city);
       const response = await fetch(url);
@@ -90,7 +115,7 @@ class WeatherService {
         return null;
       }
 
-      const json: OpenWeatherResponse = await response.json();
+      const json: WeatherResponse = await response.json();
       return json;
     } catch (error) {
       console.error('Erreur lors de la récupération des données météo:', error);
@@ -99,25 +124,20 @@ class WeatherService {
   }
 
   public async getWeather(city: string): Promise<MeteoInterface | null> {
-    // Vérifier d'abord le cache
     if (this.cache.contains(city)) {
       console.log(`Données récupérées du cache pour: ${city}`);
       return this.cache.get(city);
     }
 
-    // Si pas dans le cache, appeler l'API
     const json = await this.getWeatherJson(city);
 
     if (json) {
-      // Extraire les données nécessaires
       const temperature = Math.round((json.main.temp) * 10) / 10;
       const description = json.weather[0].description;
       const humidity = json.main.humidity;
-      const windSpeed = Math.round(json.wind.speed * 3.6); // m/s vers km/h
-      const icon = json.weather[0].icon;
+      const windSpeed = Math.round(json.wind.speed * 3.6);
       const cityName = json.name;
 
-      // Créer l'objet WeatherData
       const weatherData: MeteoInterface = {
         city: cityName,
         temperature: temperature,
@@ -127,9 +147,7 @@ class WeatherService {
         date: new Date()
       };
 
-      // Ajouter au cache
       this.cache.add(city, weatherData);
-
       return weatherData;
     }
 
@@ -143,6 +161,92 @@ class WeatherService {
 
   public getCacheSize(): number {
     return this.cache['cache'].size;
+  }
+
+  private getFutureWeatherURI(city: string): string {
+    const params = new URLSearchParams({
+      q: city,
+      appid: this.apiKey,
+      units: 'metric',
+      lang: 'fr'
+    });
+    return `${this.BASE_URL}forecast?${params.toString()}`;
+  }
+
+  private async getFutureWeatherJson(city: string): Promise<ForecastResponse | null> {
+    try {
+      const url = this.getFutureWeatherURI(city);
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        console.error(`Erreur HTTP: ${response.status} - ${response.statusText}`);
+        return null;
+      }
+
+      const json: ForecastResponse = await response.json();
+      return json;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des données météo future:', error);
+      return null;
+    }
+  }
+
+  private formatForecastItem(item: ForecastItem): FutureForecast {
+    return {
+      date: new Date(item.dt * 1000),
+      temperature: Math.round(item.main.temp * 10) / 10,
+      description: item.weather[0].description
+    };
+  }
+
+  public async getFutureWeather(city: string): Promise<FutureForecast[] | null> {
+    // Vérifier le cache
+    if (this.cache.containsForecast(city)) {
+      console.log(`Prévisions récupérées du cache pour: ${city}`);
+      return this.cache.getForecast(city);
+    }
+
+    const json = await this.getFutureWeatherJson(city);
+
+    if (json && json.list) {
+      // Transformer les données en format utilisable
+      const forecasts: FutureForecast[] = json.list.map(item => 
+        this.formatForecastItem(item)
+      );
+
+      // Ajouter au cache
+      this.cache.addForecast(city, forecasts);
+
+      return forecasts;
+    }
+
+    return null;
+  }
+
+  // Méthode utilitaire pour obtenir les prévisions par jour
+  public async getDailyForecasts(city: string): Promise<Map<string, FutureForecast[]> | null> {
+    const forecasts = await this.getFutureWeather(city);
+    
+    if (!forecasts) return null;
+
+    // Grouper par jour
+    const dailyMap = new Map<string, FutureForecast[]>();
+    
+    forecasts.forEach(forecast => {
+      const dateKey = forecast.date.toLocaleDateString('fr-FR');
+      if (!dailyMap.has(dateKey)) {
+        dailyMap.set(dateKey, []);
+      }
+      dailyMap.get(dateKey)!.push(forecast);
+    });
+
+    return dailyMap;
+  }
+
+  // Méthode pour obtenir les informations de la ville depuis les prévisions
+  public async getCityInfo(city: string): Promise<CityInfo | null> {
+    const json = await this.getFutureWeatherJson(city);
+    return json?.city || null;
   }
 }
 
